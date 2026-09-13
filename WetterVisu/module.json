@@ -1,0 +1,13 @@
+{
+    "id": "{27FAE2D4-AF87-490B-A35B-6AE86AA24002}",
+    "name": "Sulzbann Wetter Visualisierung",
+    "type": 3,
+    "vendor": "Sulzbann",
+    "aliases": [
+        "Sulzbann Wettervisu"
+    ],
+    "parentRequirements": [],
+    "childRequirements": [],
+    "implemented": [],
+    "prefix": "SBWV"
+}
