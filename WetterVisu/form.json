@@ -1,0 +1,49 @@
+{
+    "elements": [
+        {
+            "type": "Label",
+            "caption": "Sulzbann Wetter Visualisierung"
+        },
+        {
+            "type": "Label",
+            "caption": "Die Visualisierung liest MeteoSchweiz und Solcast direkt lokal aus IP-Symcon. Es werden keine Wetterdaten an GitHub übertragen."
+        },
+        {
+            "type": "NumberSpinner",
+            "name": "MeteoRootID",
+            "caption": "MeteoSchweiz Prognose Objekt-ID (0 = automatisch suchen)",
+            "minimum": 0
+        },
+        {
+            "type": "NumberSpinner",
+            "name": "SolcastParentID",
+            "caption": "Solcast Parent-ID",
+            "minimum": 0
+        },
+        {
+            "type": "NumberSpinner",
+            "name": "RefreshSeconds",
+            "caption": "Prüfintervall in Sekunden",
+            "minimum": 60
+        }
+    ],
+    "actions": [
+        {
+            "type": "Button",
+            "caption": "Visualisierung jetzt aktualisieren",
+            "onClick": "SBWV_Update($id);"
+        }
+    ],
+    "status": [
+        {
+            "code": 102,
+            "icon": "active",
+            "caption": "Aktiv"
+        },
+        {
+            "code": 201,
+            "icon": "error",
+            "caption": "MeteoSchweiz Daten nicht gefunden"
+        }
+    ]
+}
