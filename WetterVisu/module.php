@@ -95,6 +95,18 @@ class SulzbannWetterVisualisierung extends IPSModule
         /* Native Kachel der Tile-Visualisierung. */
         $this->SetVisualizationType(1);
 
+        /* Direkte Grossansicht nach dem bewährten WP-Muster. */
+        $this->RegisterVariableString(
+            'WetterGross',
+            'Wetter Grossansicht',
+            [
+                'PRESENTATION' => VARIABLE_PRESENTATION_WEB_CONTENT,
+                'HTML_TYPE' => 0,
+                'PADDING' => false
+            ],
+            20
+        );
+
 
         /*
          * Timer.
@@ -167,7 +179,8 @@ class SulzbannWetterVisualisierung extends IPSModule
 
         return $this->BuildHtml(
             $this->ReadMeteoData($meteoRootId),
-            $this->ReadSolcastData()
+            $this->ReadSolcastData(),
+            false
         );
     }
 
@@ -200,6 +213,9 @@ class SulzbannWetterVisualisierung extends IPSModule
             $this->WriteHtmlIfChanged(
                 $this->BuildErrorHtml(
                     'MeteoSchweiz Prognose wurde nicht gefunden.'
+                ),
+                $this->BuildErrorHtml(
+                    'MeteoSchweiz Prognose wurde nicht gefunden.'
                 )
             );
 
@@ -226,7 +242,15 @@ class SulzbannWetterVisualisierung extends IPSModule
         $html =
             $this->BuildHtml(
                 $meteo,
-                $solcast
+                $solcast,
+                false
+            );
+
+        $grossHtml =
+            $this->BuildHtml(
+                $meteo,
+                $solcast,
+                true
             );
 
 
@@ -237,7 +261,8 @@ class SulzbannWetterVisualisierung extends IPSModule
          * unnötig neu aufgebaut.
          */
         $this->WriteHtmlIfChanged(
-            $html
+            $html,
+            $grossHtml
         );
     }
 
@@ -1085,8 +1110,12 @@ class SulzbannWetterVisualisierung extends IPSModule
 
     private function BuildHtml(
         array $meteo,
-        array $solcast
+        array $solcast,
+        bool $gross = false
     ): string {
+
+        $bodyClass = $gross ? 'gross-view' : 'compact-view';
+        $grossObjectID = $this->GetIDForIdent('WetterGross');
 
         $dayCards = '';
 
@@ -1383,7 +1412,9 @@ class SulzbannWetterVisualisierung extends IPSModule
             .
             '</head>'
             .
-            '<body>'
+            '<body class="'
+            . $bodyClass
+            . '">'
 
 
             .
@@ -1438,9 +1469,20 @@ class SulzbannWetterVisualisierung extends IPSModule
             .
             '</div>'
             .
+            '<button class="actionButton" type="button" data-gross-id="'
+            . (int) $grossObjectID
+            . '" title="Grossansicht" aria-label="Grossansicht">↗</button>'
+            .
             '</div>'
 
 
+            .
+            '<div class="pageSelector">'
+            . '<button class="pageButton active" type="button" data-page-button="0">Wetter</button>'
+            . '<button class="pageButton" type="button" data-page-button="1">PV-Prognose</button>'
+            . '</div>'
+            .
+            '<div class="viewPanel active" data-page-panel="0">'
             .
             '<div class="panel">'
             .
@@ -1467,8 +1509,12 @@ class SulzbannWetterVisualisierung extends IPSModule
 
             .
             '</div>'
+            .
+            '</div>'
 
 
+            .
+            '<div class="viewPanel" data-page-panel="1">'
             .
             '<div class="panel">'
             .
@@ -1498,14 +1544,29 @@ class SulzbannWetterVisualisierung extends IPSModule
 
 
             .
+            '</div>'
+
+
+            .
             '<script>'
+            . 'let activePage=0;'
+            . 'function showPage(index){activePage=Number(index)||0;'
+            . 'document.querySelectorAll("[data-page-button]").forEach(function(button){button.classList.toggle("active",Number(button.dataset.pageButton)===activePage)});'
+            . 'document.querySelectorAll("[data-page-panel]").forEach(function(panel){panel.classList.toggle("active",Number(panel.dataset.pagePanel)===activePage)});}'
+            . 'function openGross(button){const id=Number(button.dataset.grossId||0);'
+            . 'if(id>0&&typeof openObject==="function"){try{openObject(id)}catch(e){console.error("SBWV openObject failed",e)}}}'
+            . 'function bindControls(){'
+            . 'document.querySelectorAll("[data-page-button]").forEach(function(button){button.onclick=function(event){event.preventDefault();event.stopPropagation();showPage(button.dataset.pageButton)}});'
+            . 'document.querySelectorAll("[data-gross-id]").forEach(function(button){button.onclick=function(event){event.preventDefault();event.stopPropagation();openGross(button)}});'
+            . 'showPage(activePage);}'
             . 'function handleMessage(message){'
             . 'if(typeof message==="string"){try{message=JSON.parse(message)}catch(e){return}}'
             . 'if(!message||typeof message.html!=="string")return;'
             . 'const next=new DOMParser().parseFromString(message.html,"text/html");'
             . 'const source=next.querySelector(".page");const target=document.querySelector(".page");'
-            . 'if(source&&target)target.replaceWith(source);'
+            . 'if(source&&target){target.replaceWith(source);bindControls();}'
             . '}'
+            . 'window.addEventListener("load",bindControls);'
             . '</script>'
             . '</body>'
             .
@@ -2415,6 +2476,174 @@ body {
     }
 }
 
+/* ============================================================
+   SEITENUMSCHALTUNG UND DIREKTE GROSSANSICHT 1.2
+============================================================ */
+
+.actionButton {
+    width: 2.25rem;
+    height: 2.25rem;
+    flex: 0 0 auto;
+    padding: 0;
+    display: grid;
+    place-items: center;
+    border: 1px solid var(--line);
+    border-radius: .62rem;
+    background: transparent;
+    color: var(--text);
+    font-size: 1.15rem;
+    cursor: pointer;
+}
+
+.pageSelector {
+    height: 2rem;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    border: 1px solid var(--line);
+    border-radius: .58rem;
+    overflow: hidden;
+}
+
+.pageButton {
+    min-width: 0;
+    border: 0;
+    background: transparent;
+    color: var(--muted);
+    font: inherit;
+    font-size: 11px;
+    font-weight: 650;
+    cursor: pointer;
+}
+
+.pageButton.active {
+    background: var(--soft);
+    color: var(--text);
+}
+
+.viewPanel {
+    min-width: 0;
+    min-height: 0;
+}
+
+.compact-view .page {
+    grid-template-rows: auto 2rem minmax(0, 1fr);
+}
+
+.compact-view .viewPanel {
+    display: none;
+}
+
+.compact-view .viewPanel.active {
+    display: block;
+    min-height: 0;
+    overflow: hidden;
+}
+
+.compact-view .viewPanel > .panel {
+    width: 100%;
+    height: 100%;
+}
+
+.compact-view .forecast {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.compact-view .dayCard:nth-child(n+4) {
+    display: none;
+}
+
+.gross-view {
+    overflow: auto;
+}
+
+.gross-view .page {
+    height: auto;
+    min-height: 100%;
+    padding: 1rem;
+    display: block;
+    overflow: visible;
+}
+
+.gross-view .header {
+    margin-bottom: .6rem;
+}
+
+.gross-view .actionButton,
+.gross-view .pageSelector {
+    display: none;
+}
+
+.gross-view .viewPanel {
+    display: block;
+    margin-bottom: .55rem;
+}
+
+.gross-view .panel {
+    overflow: visible;
+}
+
+.gross-view .forecastScroll,
+.gross-view .forecast {
+    height: auto;
+}
+
+.gross-view .forecast {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.gross-view .dayCard:nth-child(n) {
+    display: block;
+}
+
+.gross-view .row {
+    display: flex !important;
+}
+
+.gross-view .cloudTitle {
+    display: block !important;
+}
+
+.gross-view .clouds {
+    display: grid !important;
+}
+
+@media (min-width: 900px) {
+    .gross-view .forecast {
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 600px) {
+    .compact-view .page {
+        grid-template-rows: auto 2rem minmax(0, 1fr);
+    }
+
+    .compact-view .title {
+        font-size: 14px;
+    }
+
+    .compact-view .subtitle {
+        display: none;
+    }
+
+    .compact-view .status {
+        max-width: 42%;
+        white-space: normal;
+    }
+
+    .gross-view .page {
+        padding: .7rem;
+    }
+
+    .gross-view .forecast {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .gross-view .solcastGrid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
 CSS;
     }
 
@@ -2453,7 +2682,8 @@ CSS;
     /* Live-Aktualisierung der geöffneten Kachel. */
 
     private function WriteHtmlIfChanged(
-        string $html
+        string $html,
+        string $grossHtml
     ): void {
         $payload = json_encode(
             ['html' => $html],
@@ -2464,11 +2694,18 @@ CSS;
             $this->UpdateVisualizationValue($payload);
         }
 
+        $grossId = $this->GetIDForIdent('WetterGross');
+        if ($grossId > 0 && IPS_VariableExists($grossId)) {
+            if (GetValueString($grossId) !== $grossHtml) {
+                SetValueString($grossId, $grossHtml);
+            }
+        }
+
         /* Bestehende HTMLBox-Installation während der Umstellung weiterführen. */
         $legacyId = @IPS_GetObjectIDByIdent('HTML', $this->InstanceID);
         if ($legacyId > 0 && IPS_VariableExists($legacyId)) {
-            if (GetValueString($legacyId) !== $html) {
-                SetValueString($legacyId, $html);
+            if (GetValueString($legacyId) !== $grossHtml) {
+                SetValueString($legacyId, $grossHtml);
             }
         }
     }
