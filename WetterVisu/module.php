@@ -22,8 +22,8 @@ declare(strict_types=1);
  *
  * Ausgabe:
  *
- *   Eine einzige HTMLBox:
- *   "Wetter Visualisierung"
+ *   Native Kachel der Tile-Visualisierung.
+ *   Eine vorhandene HTMLBox wird während der Umstellung weiter aktualisiert.
  *
  * WICHTIG:
  *
@@ -92,15 +92,8 @@ class SulzbannWetterVisualisierung extends IPSModule
         );
 
 
-        /*
-         * Eine einzige HTMLBox für die gesamte Darstellung.
-         */
-        $this->RegisterVariableString(
-            'HTML',
-            'Wetter Visualisierung',
-            '~HTMLBox',
-            10
-        );
+        /* Native Kachel der Tile-Visualisierung. */
+        $this->SetVisualizationType(1);
 
 
         /*
@@ -123,6 +116,8 @@ class SulzbannWetterVisualisierung extends IPSModule
     public function ApplyChanges(): void
     {
         parent::ApplyChanges();
+
+        $this->SetVisualizationType(1);
 
 
         /*
@@ -153,6 +148,27 @@ class SulzbannWetterVisualisierung extends IPSModule
          * Direkt einmal aktualisieren.
          */
         $this->Update();
+    }
+
+
+    /*
+     * =========================================================================
+     * TILE
+     * =========================================================================
+     */
+
+    public function GetVisualizationTile(): string
+    {
+        $meteoRootId = $this->GetMeteoRootID();
+
+        if ($meteoRootId <= 0 || !IPS_ObjectExists($meteoRootId)) {
+            return $this->BuildErrorHtml('MeteoSchweiz Prognose wurde nicht gefunden.');
+        }
+
+        return $this->BuildHtml(
+            $this->ReadMeteoData($meteoRootId),
+            $this->ReadSolcastData()
+        );
     }
 
 
@@ -1482,7 +1498,16 @@ class SulzbannWetterVisualisierung extends IPSModule
 
 
             .
-            '</body>'
+            '<script>'
+            . 'function handleMessage(message){'
+            . 'if(typeof message==="string"){try{message=JSON.parse(message)}catch(e){return}}'
+            . 'if(!message||typeof message.html!=="string")return;'
+            . 'const next=new DOMParser().parseFromString(message.html,"text/html");'
+            . 'const source=next.querySelector(".page");const target=document.querySelector(".page");'
+            . 'if(source&&target)target.replaceWith(source);'
+            . '}'
+            . '</script>'
+            . '</body>'
             .
             '</html>';
     }
@@ -2063,6 +2088,333 @@ body {
     }
 }
 
+/* ============================================================
+   TILE-STANDARD 1.1 – überschreibt die alte HTMLBox-Darstellung
+============================================================ */
+
+:root {
+    color-scheme: light dark;
+    --bg: transparent;
+    --text: #171a1c;
+    --muted: #707980;
+    --line: #d7dadd;
+    --panel: #ffffff;
+    --card: #ffffff;
+    --soft: #f3f5f6;
+    --solar: #d79a12;
+    --cloud: #8796a2;
+    --error: #b33b3b;
+}
+
+@media (prefers-color-scheme: dark) {
+    :root {
+        --text: #f1f4f6;
+        --muted: #a4adb5;
+        --line: rgba(255,255,255,.15);
+        --panel: rgba(255,255,255,.035);
+        --card: rgba(255,255,255,.025);
+        --soft: rgba(255,255,255,.065);
+        --solar: #efb82f;
+        --cloud: #9ba8b2;
+        --error: #ef8888;
+    }
+}
+
+html,
+body {
+    width: 100%;
+    height: 100%;
+    min-height: 0;
+    margin: 0;
+    overflow: hidden;
+    background: var(--bg);
+    color: var(--text);
+}
+
+body {
+    min-height: 0;
+}
+
+.page {
+    width: 100%;
+    height: 100%;
+    padding: 2.7rem .55rem .5rem;
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr) auto;
+    gap: .42rem;
+    overflow: hidden;
+}
+
+.header {
+    min-width: 0;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: .65rem;
+}
+
+.title {
+    font-size: 15px;
+    line-height: 1.15;
+}
+
+.subtitle {
+    margin-top: .1rem;
+    color: var(--muted);
+    font-size: 10px;
+}
+
+.status {
+    margin-left: auto;
+    color: var(--muted);
+    font-size: 9px;
+    line-height: 1.3;
+    white-space: nowrap;
+}
+
+.panel {
+    min-width: 0;
+    min-height: 0;
+    margin: 0;
+    padding: .48rem;
+    border: 1px solid var(--line);
+    border-radius: .72rem;
+    background: var(--panel);
+    overflow: hidden;
+}
+
+.panelHeader {
+    margin-bottom: .36rem;
+}
+
+.panelTitle {
+    font-size: 13px;
+}
+
+.panelInfo {
+    color: var(--muted);
+    font-size: 9px;
+}
+
+.forecastScroll {
+    height: calc(100% - 1.25rem);
+    overflow: hidden;
+}
+
+.forecast {
+    height: 100%;
+    min-width: 0;
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: .34rem;
+}
+
+.dayCard {
+    min-width: 0;
+    padding: .42rem;
+    border: 1px solid var(--line);
+    border-radius: .58rem;
+    background: var(--card);
+    overflow: hidden;
+}
+
+.dayCard:nth-child(n+5) {
+    display: none;
+}
+
+.dayTop {
+    margin-bottom: .28rem;
+}
+
+.dayName {
+    font-size: 12px;
+}
+
+.date {
+    color: var(--muted);
+    font-size: 8px;
+}
+
+.icon {
+    font-size: 25px;
+}
+
+.temperature {
+    margin-bottom: .3rem;
+}
+
+.maxTemp {
+    font-size: 20px;
+}
+
+.minTemp {
+    color: var(--muted);
+    font-size: 10px;
+}
+
+.row {
+    margin: .13rem 0;
+    font-size: 9px;
+}
+
+.label,
+.cloudTitle,
+.cloudName,
+.scenarioName,
+.detailName,
+.scenarioValue span {
+    color: var(--muted);
+}
+
+.solarTrack {
+    height: 3px;
+    margin-top: .3rem;
+    background: var(--soft);
+}
+
+.solarFill {
+    background: var(--solar);
+}
+
+.cloudTitle {
+    margin-top: .3rem;
+    padding-top: .25rem;
+    border-color: var(--line);
+    font-size: 8px;
+}
+
+.clouds {
+    margin-top: .2rem;
+}
+
+.cloudValue {
+    font-size: 9px;
+}
+
+.cloudTrack {
+    background: var(--soft);
+}
+
+.cloudFill {
+    background: var(--cloud);
+}
+
+.solcastGrid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: .34rem;
+}
+
+.solcastCard {
+    min-width: 0;
+    padding: .4rem;
+    border: 1px solid var(--line);
+    border-radius: .58rem;
+    background: var(--card);
+}
+
+.solcastTitle {
+    margin-bottom: .26rem;
+    font-size: 11px;
+}
+
+.scenarioGrid,
+.detailGrid {
+    gap: .24rem;
+}
+
+.detailGrid {
+    margin-top: .24rem;
+}
+
+.scenario,
+.detail {
+    padding: .28rem .2rem;
+    background: var(--soft);
+}
+
+.scenarioValue {
+    font-size: 13px;
+}
+
+.detailValue {
+    font-size: 9px;
+}
+
+.missing {
+    padding: .5rem;
+    color: var(--error);
+}
+
+@media (min-width: 1050px) {
+    .forecast {
+        grid-template-columns: repeat(9, minmax(0, 1fr));
+    }
+
+    .dayCard:nth-child(n) {
+        display: block;
+    }
+}
+
+@media (max-width: 600px) {
+    .page {
+        padding: 2.65rem .38rem .38rem;
+        gap: .3rem;
+    }
+
+    .header {
+        flex-direction: row;
+    }
+
+    .status {
+        text-align: right;
+    }
+
+    .forecast {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: .25rem;
+    }
+
+    .dayCard:nth-child(n+4) {
+        display: none;
+    }
+
+    .dayCard {
+        padding: .34rem;
+    }
+
+    .dayName {
+        font-size: 11px;
+    }
+
+    .icon {
+        font-size: 23px;
+    }
+
+    .row:nth-of-type(n+5),
+    .cloudTitle,
+    .clouds {
+        display: none;
+    }
+
+    .solcastGrid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-height: 470px) {
+    .subtitle,
+    .cloudTitle,
+    .clouds,
+    .row:nth-of-type(n+4) {
+        display: none;
+    }
+
+    .page {
+        gap: .28rem;
+    }
+}
+
 CSS;
     }
 
@@ -2098,34 +2450,26 @@ CSS;
     }
 
 
-    /*
-     * =========================================================================
-     * HTML NUR BEI ÄNDERUNG SCHREIBEN
-     * =========================================================================
-     */
+    /* Live-Aktualisierung der geöffneten Kachel. */
 
     private function WriteHtmlIfChanged(
         string $html
     ): void {
+        $payload = json_encode(
+            ['html' => $html],
+            JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES
+        );
 
-        $variableId =
-            $this->GetIDForIdent(
-                'HTML'
-            );
+        if ($payload !== false) {
+            $this->UpdateVisualizationValue($payload);
+        }
 
-
-        $old =
-            GetValueString(
-                $variableId
-            );
-
-
-        if ($old !== $html) {
-
-            SetValueString(
-                $variableId,
-                $html
-            );
+        /* Bestehende HTMLBox-Installation während der Umstellung weiterführen. */
+        $legacyId = @IPS_GetObjectIDByIdent('HTML', $this->InstanceID);
+        if ($legacyId > 0 && IPS_VariableExists($legacyId)) {
+            if (GetValueString($legacyId) !== $html) {
+                SetValueString($legacyId, $html);
+            }
         }
     }
 
