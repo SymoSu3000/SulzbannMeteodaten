@@ -1036,14 +1036,12 @@ class SulzbannWetterVisualisierung extends IPSModule
 
 
         if ($rain >= 5) {
-
-            return '🌧';
+            return '<svg viewBox="0 0 32 32" aria-hidden="true"><path class="weather-cloud" d="M8 20h15a5 5 0 0 0 .2-10 8 8 0 0 0-15-1.8A6 6 0 0 0 8 20Z"/><path class="weather-rain" d="M10 24l-1 3M16 24l-1 3M22 24l-1 3"/></svg>';
         }
 
 
         if ($rain >= 0.5) {
-
-            return '🌦';
+            return '<svg viewBox="0 0 32 32" aria-hidden="true"><circle class="weather-sun" cx="11" cy="10" r="4"/><path class="weather-ray" d="M11 3v2M11 15v2M4 10h2M16 10h2M6 5l1.5 1.5M14.5 13.5L16 15M6 15l1.5-1.5M14.5 6.5L16 5"/><path class="weather-cloud" d="M10 22h14a4.5 4.5 0 0 0 .2-9 7 7 0 0 0-13-1.4A5.3 5.3 0 0 0 10 22Z"/><path class="weather-rain" d="M14 25l-1 3M21 25l-1 3"/></svg>';
         }
 
 
@@ -1053,7 +1051,7 @@ class SulzbannWetterVisualisierung extends IPSModule
             $solar >= 4
         ) {
 
-            return '☀️';
+            return '<svg viewBox="0 0 32 32" aria-hidden="true"><circle class="weather-sun" cx="16" cy="16" r="6"/><path class="weather-ray" d="M16 3v4M16 25v4M3 16h4M25 16h4M6.8 6.8l2.8 2.8M22.4 22.4l2.8 2.8M6.8 25.2l2.8-2.8M22.4 9.6l2.8-2.8"/></svg>';
         }
 
 
@@ -1063,7 +1061,7 @@ class SulzbannWetterVisualisierung extends IPSModule
             $sun < 2
         ) {
 
-            return '☁️';
+            return '<svg viewBox="0 0 32 32" aria-hidden="true"><path class="weather-cloud" d="M7 23h18a6 6 0 0 0 .3-12 9 9 0 0 0-17-2A7 7 0 0 0 7 23Z"/></svg>';
         }
 
 
@@ -1073,11 +1071,11 @@ class SulzbannWetterVisualisierung extends IPSModule
             $sun < 6
         ) {
 
-            return '⛅';
+            return '<svg viewBox="0 0 32 32" aria-hidden="true"><circle class="weather-sun" cx="11" cy="10" r="5"/><path class="weather-ray" d="M11 2v3M3 10h3M5 4l2 2M17 4l-2 2"/><path class="weather-cloud" d="M9 24h16a5.5 5.5 0 0 0 .2-11 8 8 0 0 0-15-1.6A6.2 6.2 0 0 0 9 24Z"/></svg>';
         }
 
 
-        return '🌤';
+        return '<svg viewBox="0 0 32 32" aria-hidden="true"><circle class="weather-sun" cx="12" cy="11" r="6"/><path class="weather-ray" d="M12 2v3M3 11h3M5.5 4.5l2.2 2.2M18.5 4.5l-2.2 2.2"/><path class="weather-cloud" d="M11 24h14a5 5 0 0 0 .2-10 7 7 0 0 0-13-1.4A5.5 5.5 0 0 0 11 24Z"/></svg>';
     }
 
 
@@ -1418,7 +1416,7 @@ class SulzbannWetterVisualisierung extends IPSModule
 
 
             .
-            '<div class="page">'
+            '<div class="page" data-weather-view="1">'
 
 
             .
@@ -1561,7 +1559,7 @@ class SulzbannWetterVisualisierung extends IPSModule
             . 'showPage(activePage);}'
             . 'function handleMessage(message){'
             . 'if(typeof message==="string"){try{message=JSON.parse(message)}catch(e){return}}'
-            . 'if(!message||typeof message.html!=="string")return;'
+            . 'if(!message||message.type!=="SulzbannWeatherView"||typeof message.html!=="string"||message.html.indexOf("data-weather-view")<0)return;'
             . 'const next=new DOMParser().parseFromString(message.html,"text/html");'
             . 'const source=next.querySelector(".page");const target=document.querySelector(".page");'
             . 'if(source&&target){target.replaceWith(source);bindControls();}'
@@ -1891,13 +1889,13 @@ body {
 
 .subtitle {
     margin-top: 4px;
-    font-size: 12px;
+    font-size: 13px;
     color: #92a1ae;
 }
 
 .status {
     text-align: right;
-    font-size: 11px;
+    font-size: 13px;
     line-height: 1.55;
     color: #8fa2b1;
 }
@@ -1924,7 +1922,7 @@ body {
 }
 
 .panelInfo {
-    font-size: 10px;
+    font-size: 13px;
     color: #8fa1b0;
 }
 
@@ -1961,12 +1959,42 @@ body {
 
 .date {
     margin-top: 2px;
-    font-size: 9px;
+    font-size: 13px;
     color: #778795;
 }
 
 .icon {
+    width: 32px;
+    height: 32px;
     font-size: 21px;
+}
+
+.icon svg {
+    display: block;
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+}
+
+.weather-sun {
+    fill: var(--solar);
+    stroke: var(--solar);
+    stroke-width: 1.4;
+}
+
+.weather-ray,
+.weather-rain {
+    fill: none;
+    stroke: var(--solar);
+    stroke-width: 1.8;
+    stroke-linecap: round;
+}
+
+.weather-cloud {
+    fill: var(--cloud);
+    stroke: var(--cloud);
+    stroke-width: 1.2;
+    stroke-linejoin: round;
 }
 
 .temperature {
@@ -1988,7 +2016,7 @@ body {
     justify-content: space-between;
     gap: 7px;
     margin: 4px 0;
-    font-size: 10px;
+    font-size: 13px;
 }
 
 .label {
@@ -2018,7 +2046,7 @@ body {
     margin-top: 9px;
     padding-top: 7px;
     border-top: 1px solid #202a34;
-    font-size: 9px;
+    font-size: 13px;
     color: #778795;
 }
 
@@ -2034,13 +2062,13 @@ body {
 }
 
 .cloudName {
-    font-size: 8px;
+    font-size: 13px;
     color: #74828e;
 }
 
 .cloudValue {
     margin-top: 2px;
-    font-size: 10px;
+    font-size: 13px;
 }
 
 .cloudTrack {
@@ -2089,7 +2117,7 @@ body {
 }
 
 .scenarioName {
-    font-size: 9px;
+    font-size: 13px;
     color: #8b9aa6;
 }
 
@@ -2100,7 +2128,7 @@ body {
 }
 
 .scenarioValue span {
-    font-size: 8px;
+    font-size: 13px;
     font-weight: 400;
     color: #7f8e99;
 }
@@ -2119,13 +2147,13 @@ body {
 }
 
 .detailName {
-    font-size: 8px;
+    font-size: 13px;
     color: #7d8c98;
 }
 
 .detailValue {
     margin-top: 3px;
-    font-size: 12px;
+    font-size: 13px;
     font-weight: 600;
 }
 
@@ -2155,7 +2183,7 @@ body {
 
 :root {
     color-scheme: light dark;
-    --bg: transparent;
+    --bg: #ffffff;
     --text: #171a1c;
     --muted: #707980;
     --line: #d7dadd;
@@ -2169,6 +2197,7 @@ body {
 
 @media (prefers-color-scheme: dark) {
     :root {
+        --bg: transparent;
         --text: #f1f4f6;
         --muted: #a4adb5;
         --line: rgba(255,255,255,.15);
@@ -2222,13 +2251,13 @@ body {
 .subtitle {
     margin-top: .1rem;
     color: var(--muted);
-    font-size: 10px;
+    font-size: 13px;
 }
 
 .status {
     margin-left: auto;
     color: var(--muted);
-    font-size: 9px;
+    font-size: 13px;
     line-height: 1.3;
     white-space: nowrap;
 }
@@ -2254,7 +2283,7 @@ body {
 
 .panelInfo {
     color: var(--muted);
-    font-size: 9px;
+    font-size: 13px;
 }
 
 .forecastScroll {
@@ -2288,12 +2317,12 @@ body {
 }
 
 .dayName {
-    font-size: 12px;
+    font-size: 13px;
 }
 
 .date {
     color: var(--muted);
-    font-size: 8px;
+    font-size: 13px;
 }
 
 .icon {
@@ -2310,12 +2339,12 @@ body {
 
 .minTemp {
     color: var(--muted);
-    font-size: 10px;
+    font-size: 13px;
 }
 
 .row {
     margin: .13rem 0;
-    font-size: 9px;
+    font-size: 13px;
 }
 
 .label,
@@ -2341,7 +2370,7 @@ body {
     margin-top: .3rem;
     padding-top: .25rem;
     border-color: var(--line);
-    font-size: 8px;
+    font-size: 13px;
 }
 
 .clouds {
@@ -2349,7 +2378,7 @@ body {
 }
 
 .cloudValue {
-    font-size: 9px;
+    font-size: 13px;
 }
 
 .cloudTrack {
@@ -2376,7 +2405,7 @@ body {
 
 .solcastTitle {
     margin-bottom: .26rem;
-    font-size: 11px;
+    font-size: 13px;
 }
 
 .scenarioGrid,
@@ -2399,7 +2428,7 @@ body {
 }
 
 .detailValue {
-    font-size: 9px;
+    font-size: 13px;
 }
 
 .missing {
@@ -2445,7 +2474,7 @@ body {
     }
 
     .dayName {
-        font-size: 11px;
+        font-size: 13px;
     }
 
     .icon {
@@ -2510,7 +2539,7 @@ body {
     background: transparent;
     color: var(--muted);
     font: inherit;
-    font-size: 11px;
+    font-size: 13px;
     font-weight: 650;
     cursor: pointer;
 }
@@ -2642,6 +2671,26 @@ body {
     .gross-view .solcastGrid {
         grid-template-columns: repeat(2, minmax(0, 1fr));
     }
+
+    body,
+    .subtitle,
+    .status,
+    .panelTitle,
+    .panelInfo,
+    .dayName,
+    .date,
+    .row,
+    .cloudTitle,
+    .cloudName,
+    .cloudValue,
+    .solcastTitle,
+    .scenarioName,
+    .scenarioValue span,
+    .detailName,
+    .detailValue,
+    .pageButton {
+        font-size: 12px;
+    }
 }
 
 CSS;
@@ -2659,9 +2708,12 @@ CSS;
     ): string {
 
         return
-            '<html>'
+            '<!DOCTYPE html><html lang="de">'
             .
-            '<body style="background:#0d1218;color:#e97777;font-family:Arial;padding:20px;">'
+            '<head><meta name="viewport" content="width=device-width,initial-scale=1">'
+            . '<style>:root{color-scheme:light dark}html,body{margin:0;background:transparent;color:#b33b3b;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;font-size:13px}@media(prefers-color-scheme:dark){html,body{color:#ef8888}}body{padding:3.2rem .8rem .8rem}h3{font-size:18px}</style></head>'
+            .
+            '<body>'
             .
             '<h3>Sulzbann Wettervisu</h3>'
             .
@@ -2686,7 +2738,10 @@ CSS;
         string $grossHtml
     ): void {
         $payload = json_encode(
-            ['html' => $html],
+            [
+                'type' => 'SulzbannWeatherView',
+                'html' => $html
+            ],
             JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES
         );
 
